@@ -12,7 +12,6 @@ import random
 import socket
 import operator
 import itertools
-import telnetlib
 import json
 import binascii
 import importlib
@@ -342,120 +341,6 @@ def double_qouted(s):
 
 def mixcase(s):
     return ''.join(i.upper() if random.randint(0, 1) else i.lower() for i in s)
-
-
-class BufferedSocket():
-    '''slow recvbuffered socket implementation'''
-
-    def __init__(self, _socket=None, options={}):
-        if socket is not None:
-            self.socket = _socket
-        else:
-            self.socket = socket.socket()
-
-        self.recvbuf = b''
-        self.sendbuf = b''
-        self.options = {
-            "sendflags" : 0,
-            "recvflags" : 0,
-            "sendafter" : None
-            }
-        self.options.update(options)
-
-    def connect(self, addr, port=None):
-        if port is not None:
-            return self.socket.connect((addr, port))
-        return self.socket.connect(addr)
-
-    def connect_ex(self, addr, port=None):
-        if port is not None:
-            return self.socket.connect_ex((addr, port))
-        return self.socket.connect_ex(addr)
-
-    def recvall(self, nbytes):
-        while len(self.recvbuf) < nbytes:
-            self.recvbuf += self.socket.recv(1024, self.options["recvflags"])
-        rt = self.recvbuf[:nbytes]
-        self.recvbuf = self.recvbuf[nbytes:]
-        return rt
-
-    def recv(self, nbytes=1024):
-        if len(self.recvbuf) == 0:
-            self.recvbuf += self.socket.recv(nbytes - len(self.recvbuf), self.options["recvflags"])
-        rt = self.recvbuf[:nbytes]
-        self.recvbuf = self.recvbuf[nbytes:]
-        return rt
-
-    def recvuntil(self, s):
-        s = force_bytes(s)
-        while s not in self.recvbuf:
-            self.recvbuf += self.socket.recv(1024, self.options["recvflags"])
-        until = self.recvbuf.find(s) + len(s)
-        rt = self.recvbuf[:until]
-        self.recvbuf = self.recvbuf[until:]
-        return rt
-
-    def recvline(self):
-        return self.recvuntil(b'\n')
-
-    def send(self, s):
-        if self.options["sendafter"] is None:
-            return self.socket.send(force_bytes(s), self.options["sendflags"])
-
-        if isinstance(self.options["sendafter"], (bytes, bytearray)):
-
-            self.sendbuf += force_bytes(s)
-            delim = self.options["sendafter"]
-
-            while delim in self.sendbuf:
-                until = self.sendbuf.index(delim) + len(delim)
-                s.send(self.send(self.sendbuf[:until]), self.options["sendflags"])
-                self.sendbuf = self.sendbuf[until:]
-
-        else:
-
-            while True:
-                for delim in self.options["sendafter"]:
-                    if delim in self.sendbuf:
-                        until = self.sendbuf.index(delim) + len(delim)
-                        s.send(self.send(self.sendbuf[:until]), self.options["sendflags"])
-                        self.sendbuf = self.sendbuf[until:]
-                        break
-                else:
-                    break
-
-    def sendall(self, s):
-        self.socket.sendall(self.sendbuf, self.options["sendflags"])
-        self.sendbuf = b''
-        self.socket.sendall(force_bytes(s), self.options["sendflags"])
-
-    def sendline(self, s=b''):
-        self.send(force_bytes(s) + b'\n')
-
-    def sendafter(self, pattern, s):
-        s.recvuntil(pattern)
-        s.send(s)
-
-    def interact(self):
-        sys.stdout.buffer.write(self.recvbuf)
-        self.recvbuffer = b''
-
-        t = telnetlib.Telnet()
-        t.sock = self.socket
-        t.interact()
-
-    def interactive(self):
-        self.interact()
-
-    def solve_hashcash(self):
-        hash_cash_cmd = self.recvuntil(b"\n")
-        hash_cash_cmd = hash_cash_cmd[hash_cash_cmd.find(b'hashcash'):]
-        with os.popen(hash_cash_cmd.decode()) as f:
-            stamp = f.read()
-            self.send(stamp)
-
-    def close(self):
-        self.socket.close()
 
 def sock(family=None, type=None, proto=None, options={}):
     socketargs = {}
