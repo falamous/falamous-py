@@ -29,12 +29,17 @@ from operator import *
 from functools import *
 from time import *
 from fractions import *
+
 # # You can't import everything from math because it would overwrite the superiour pow from builtins.
 # from math import sqrt
 # from math import log, log10, e
 from math import *
+
+
 def ln(x):
     return log(x, e)
+
+
 # from math import sin, cos, tan, acos, asin, atan, pi
 # from math import floor, ceil
 # from struct import pack, pack_into, unpack, unpack_from
@@ -61,26 +66,29 @@ from binascii import crc32
 from base64 import b64encode, b64encode as be
 from base64 import b64decode, b64decode as bd
 
+
 def try_import(module, name=None):
     try:
         setattr(
-                importlib.import_module(__name__),
-                name or module, 
-                importlib.import_module(module)
-                )
+            importlib.import_module(__name__),
+            name or module,
+            importlib.import_module(module),
+        )
     except ImportError:
         pass
+
 
 def try_from_import(module, *names):
     try:
         for name in names:
             setattr(
-                    importlib.import_module(__name__),
-                    name, 
-                    getattr(importlib.import_module(module), name)
-                    )
+                importlib.import_module(__name__),
+                name,
+                getattr(importlib.import_module(module), name),
+            )
     except ImportError:
         pass
+
 
 # Libs
 try_import("gmpy2")
@@ -93,10 +101,13 @@ try_import("asyncio")
 try_import("pyperclip")
 try:
     import pyperclip
-    def copy(obj):
+
+    def clip(obj):
         return pyperclip.copy(repr(obj))
+
     def paste():
         return pyperclip.paste()
+
 except ModuleNotFoundError:
     pass
 
@@ -109,11 +120,14 @@ else:
 
 
 def rndstr(n=32, alphabet=AL):
-    return ''.join(random.choices(alphabet, k=n))
+    return "".join(random.choices(alphabet, k=n))
+
 
 if sys.version_info.major == 3:
+
     def brndstr(n=32, alphabet=BAL):
         return bytes(random.choices(alphabet, k=n))
+
 else:
     brndstr = rndstr
 
@@ -122,6 +136,7 @@ else:
 def lcm(a, b):
     """lowest common multiplier of x and y"""
     return a * b // gcd(a, b)
+
 
 def egcd(a, b):
     """
@@ -136,6 +151,7 @@ def egcd(a, b):
         (y0, y1) = (y1, y0 - q * y1)
     return (a, x0, y0)
 
+
 def modinv(n, p):
     """
     Inversion of n (to gcd(n, p) if they are not coprime) modulo p
@@ -143,6 +159,7 @@ def modinv(n, p):
     """
     g, kn, kp = egcd(n, p)
     return (kn % p + p) % p
+
 
 def chinese_rem_theorem(it):
     """
@@ -158,6 +175,7 @@ def chinese_rem_theorem(it):
         result = (modinv(M, m) * M * r + modinv(m, M) * m * result) % (M * m)
         M *= m
     return result, M
+
 
 def pow(base, exp, mod=None):
     if mod is None:
@@ -176,6 +194,7 @@ def pow(base, exp, mod=None):
         exp //= 2
     return res
 
+
 def cipolla(n, p):
     """
     Cipolla's algorithm for solving x ** 2 % p == n
@@ -184,19 +203,19 @@ def cipolla(n, p):
 
     assert gmpy2.is_prime(p)
     for a in range(p):
-        if pow(a ** 2 - n, (p - 1) // 2, p) == p - 1:
+        if pow(a**2 - n, (p - 1) // 2, p) == p - 1:
             break
     else:
         raise ValueError("Non quadratic residue not found.")
 
     def cipolla_multiply(x, y):
         return (
-                (x[0] * y[0] + x[1] * y[1] * (a ** 2 - n)) % p,
-                (x[0] * y[1] + x[1] * y[0]) % p
-                )
+            (x[0] * y[0] + x[1] * y[1] * (a**2 - n)) % p,
+            (x[0] * y[1] + x[1] * y[0]) % p,
+        )
 
     x = (1, 0)
-    base = (a, 1) # x = x0 + x1 * sqrt(a ** 2 - n)
+    base = (a, 1)  # x = x0 + x1 * sqrt(a ** 2 - n)
     exp = (p + 1) // 2
     while exp:
         if exp % 2:
@@ -208,6 +227,7 @@ def cipolla(n, p):
 
     return x[0]
 
+
 def hensel_lifting(f, r, p, k, m=1):
     def apply(f, x, p):
         return sum(c * pow(x, i, p) for i, c in enumerate(f)) % p
@@ -217,10 +237,12 @@ def hensel_lifting(f, r, p, k, m=1):
         return r % p ** (k + m)
 
     fd = [c * i for i, c in enumerate(f)][1:] + [0]
-    assert(apply(f, r, p ** k) == 0)
-    assert(apply(fd, r, p ** k) != 0)
+    assert apply(f, r, p**k) == 0
+    assert apply(fd, r, p**k) != 0
 
-    return (r - apply(f, r, p ** (k + m)) *  modinv(apply(fd, r, p ** m), p ** m)) % p ** (k + m)
+    return (
+        r - apply(f, r, p ** (k + m)) * modinv(apply(fd, r, p**m), p**m)
+    ) % p ** (k + m)
 
 
 def sqrtmod(n, p, power=1):
@@ -237,28 +259,33 @@ def sqrtmod(n, p, power=1):
     else:
         x = cipolla(n, p)
 
-    assert x ** 2 % p == n % p
+    assert x**2 % p == n % p
 
     roots = [x, -x % p]
 
     power_of_2 = 0
     while 2 ** (power_of_2 + 1) < power:
-        roots = [hensel_lifting(
-            f=[-n, 0, 1], # f(x) = 1 * x ** 2 + 0 * x ** 1 + (-n) * x ** 0 (mod p)
+        roots = [
+            hensel_lifting(
+                f=[-n, 0, 1],  # f(x) = 1 * x ** 2 + 0 * x ** 1 + (-n) * x ** 0 (mod p)
+                r=root,
+                p=p,
+                k=2**power_of_2,
+                m=2**power_of_2,
+            )
+            for root in roots
+        ]
+        power_of_2 += 1
+    roots = [
+        hensel_lifting(
+            f=[-n, 0, 1],  # f(x) = 1 * x ** 2 + 0 * x ** 1 + (-n) * x ** 0 (mod p)
             r=root,
             p=p,
             k=2**power_of_2,
-            m=2**power_of_2,
-            ) for root in roots]
-        power_of_2 += 1
-    roots = [hensel_lifting(
-        f=[-n, 0, 1], # f(x) = 1 * x ** 2 + 0 * x ** 1 + (-n) * x ** 0 (mod p)
-        r=root,
-        p=p,
-        k=2**power_of_2,
-        m=power - 2**power_of_2,
-        ) for root in roots]
-
+            m=power - 2**power_of_2,
+        )
+        for root in roots
+    ]
 
     return tuple(roots)
 
@@ -267,18 +294,22 @@ def cati(arr, ind, v):
     """return arr with arr[ind] changed to v"""
     construct = type(arr)
     if type(arr) == str:
-        construct = ''.join()
-    return arr[:ind] + construct([v]) + arr[ind + 1:]
+        construct = "".join()
+    return arr[:ind] + construct([v]) + arr[ind + 1 :]
 
 
 # Working with bytes and numbers
-def bytes_to_long(b, byteorder='little'):
+def bytes_to_long(b, byteorder="little"):
     """simple function to convert bytes to int"""
     return int.from_bytes(int(b), byteorder=byteorder)
 
-def long_to_bytes(n,):
+
+def long_to_bytes(
+    n,
+):
     """simple function to convert int to bytes"""
-    return int(n).to_bytes((n.bit_length() + 7)//8, byteorder="little")
+    return int(n).to_bytes((n.bit_length() + 7) // 8, byteorder="little")
+
 
 def force_bytes(a):
     """force the argument to bytes"""
@@ -304,13 +335,14 @@ def avg(iterable):
             length += 1
             it_sum += el
 
-        return it_sum/length
+        return it_sum / length
 
 
 def double_qouted(s):
     """
     return the representation of the object changing the string in it to be double qouted
     """
+
     def _force_double_qoutes(qouted):
         if qouted[0] == '"':
             return qouted
@@ -327,20 +359,26 @@ def double_qouted(s):
     if type(s) == str:
         return _force_double_qoutes(repr(s))
     if type(s) == bytes:
-        return 'b' + _force_double_qoutes(repr(s)[1:])
+        return "b" + _force_double_qoutes(repr(s)[1:])
 
     repred = repr(s)
     qouted_left = min(
-            _replace_if_negative(repred.find("'"), len(repred)),
-            _replace_if_negative(repred.find('"'), len(repred))
-            )
+        _replace_if_negative(repred.find("'"), len(repred)),
+        _replace_if_negative(repred.find('"'), len(repred)),
+    )
     qouted_right = max(repred.rfind("'"), repred.rfind('"')) + 1
     assert qouted_right != 0
     assert qouted_left != len(repred)
-    return repred[:qouted_left] + _force_double_qoutes(repred[qouted_left:qouted_right]) + repred[qouted_right:]
+    return (
+        repred[:qouted_left]
+        + _force_double_qoutes(repred[qouted_left:qouted_right])
+        + repred[qouted_right:]
+    )
+
 
 def mixcase(s):
-    return ''.join(i.upper() if random.randint(0, 1) else i.lower() for i in s)
+    return "".join(i.upper() if random.randint(0, 1) else i.lower() for i in s)
+
 
 def sock(family=None, type=None, proto=None, options={}):
     socketargs = {}
@@ -354,6 +392,7 @@ def sock(family=None, type=None, proto=None, options={}):
 
     return BufferedSocket(socket.socket(**socketargs), options)
 
+
 def connect(addr, port=None, options={}):
     _socket = sock(options=options)
     _socket.connect(addr, port)
@@ -361,13 +400,15 @@ def connect(addr, port=None, options={}):
 
 
 r = requests.session()
-r.headers.update({
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:92.0) Gecko/20100101 Firefox/92.0',
-    })
+r.headers.update(
+    {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:92.0) Gecko/20100101 Firefox/92.0",
+    }
+)
 proxies = {
-        "http": "socks5://localhost:9050",
-        "https": "socks5://localhost:9050",
-        }
+    "http": "socks5://localhost:9050",
+    "https": "socks5://localhost:9050",
+}
 
 
 # Just ipython things
@@ -378,43 +419,51 @@ def is_ipython():
     except:
         return False
 
+
 def configure_ipython():
     ipython = get_ipython()
-    for formatter in ipython.display_formatter.formatters.values():
-        formatter.for_type(str, lambda s, p, cycle: p.text(double_qouted(s)))
-        formatter.for_type(bytes, lambda s, p, cycle: p.text(double_qouted(s)))
-        formatter.for_type(bytearray, lambda s, p, cycle: p.text(double_qouted(s)))
+    # for formatter in ipython.display_formatter.formatters.values():
+    #     formatter.for_type(str, lambda s, p, cycle: p.text(double_qouted(s)))
+    #     formatter.for_type(bytes, lambda s, p, cycle: p.text(double_qouted(s)))
+    #     formatter.for_type(bytearray, lambda s, p, cycle: p.text(double_qouted(s)))
+
 
 def display_hex():
     ipython = get_ipython()
     for formatter in ipython.display_formatter.formatters.values():
         formatter.for_type(int, lambda n, p, cycle: p.text(hex(n)))
 
+
 def display_int():
     ipython = get_ipython()
     for formatter in ipython.display_formatter.formatters.values():
         formatter.for_type(int, lambda n, p, cycle: p.text(repr(n)))
+
 
 async def setup_telethon():
     global saved_messages_chat
 
     saved_messages_chat = (await telethon_client.get_dialogs())[0]
 
+
 def isfile(obj):
-    return hasattr(obj, "read")\
-            and hasattr(obj, "readable")\
-            and hasattr(obj, "readline")\
-            and hasattr(obj, "seek")\
-            and hasattr(obj, "close")
+    return (
+        hasattr(obj, "read")
+        and hasattr(obj, "readable")
+        and hasattr(obj, "readline")
+        and hasattr(obj, "seek")
+        and hasattr(obj, "close")
+    )
+
 
 async def atgsave(*objs):
     for obj in objs:
         await tg_send_obj(saved_messages_chat, obj)
 
+
 def tgsave(*objs):
-    asyncio.get_event_loop().run_until_complete(
-            atgsave(*objs)
-            )
+    asyncio.get_event_loop().run_until_complete(atgsave(*objs))
+
 
 async def tg_send_obj(receiver, obj):
     if isfile(obj):
@@ -424,19 +473,21 @@ async def tg_send_obj(receiver, obj):
     else:
         await telethon_client.send_message(saved_messages_chat, repr(obj))
 
+
 def msg(receiver, obj):
-    asyncio.get_event_loop().run_until_complete(
-            tg_send_obj(receiver, obj)
-            )
+    asyncio.get_event_loop().run_until_complete(tg_send_obj(receiver, obj))
+
 
 def setup_tg():
     global telethon
     global TelegramClient
     import telethon
     from telethon import TelegramClient
+
     global telethon_dir
-    telethon_dir = os.path.join(os.getenv("XDG_DATA_HOME"), "telethon_client")\
-            or os.path.join(os.expand("~"), ".telethon_client")
+    telethon_dir = os.path.join(
+        os.getenv("XDG_DATA_HOME"), "telethon_client"
+    ) or os.path.join(os.expand("~"), ".telethon_client")
     try:
         os.mkdir(telethon_dir)
     except FileExistsError:
@@ -445,14 +496,15 @@ def setup_tg():
     with open(os.path.join(os.expand("~"), "share", "telegram_api_key"), "r") as f:
         token = f.read()
     telethon_client = TelegramClient(
-            os.path.join(telethon_dir, "telebot"),
-            8848797,
-            token,
-            )
+        os.path.join(telethon_dir, "telebot"),
+        8848797,
+        token,
+    )
     global tg
     tg = telethon_client
     telethon_client.start()
     asyncio.get_event_loop().run_until_complete(setup_telethon())
+
 
 if is_ipython():
     configure_ipython()
