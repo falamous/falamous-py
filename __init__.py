@@ -103,7 +103,7 @@ try:
     import pyperclip
 
     def clip(obj):
-        return pyperclip.copy(repr(obj))
+        return pyperclip.copy(str(obj))
 
     def paste():
         return pyperclip.paste()
